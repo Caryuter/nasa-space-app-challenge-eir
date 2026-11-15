@@ -1,0 +1,35 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "${ASTRA_BIND_ADDRESS:-127.0.0.1}:${ASTRA_PORT:-8080}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+  backend:
+    build: ./backend
+    environment:
+      ASTRA_DB_PATH: /data/astra.db
+      APOLLO_PROVIDER: ${APOLLO_PROVIDER:-deterministic}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:0.6b}
+    volumes:
+      - astra-data:/data
+    restart: unless-stopped
+  ollama:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+volumes:
+  astra-data:
+  ollama-models:
